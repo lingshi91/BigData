@@ -6,3 +6,37 @@ HBase 是一种	分布式非关系型数据库，提供统一的配置管理和�
 HBase版本：当前我所使用的版本为HBase	1.1.2
 
 HBase  Shell操作
+
+HBase 目录结构
+/apps/hbase/data/.tmp
+/apps/hbase/data/MasterProcWALs
+/apps/hbase/data/WALs
+/apps/hbase/data/archive
+/apps/hbase/data/corrupt
+/apps/hbase/data/data
+/apps/hbase/data/hbase.id
+/apps/hbase/data/hbase.version
+/apps/hbase/data/oldWALs
+
+1、/hbase/.tmp
+  当对表做创建或者删除操作的时候，会将表move 到该 tmp 目录下，然后再去做处理操作。
+2、/hbase/WALs
+    HBase 是支持 WAL（Write Ahead Log） 的，HBase 会在第一次启动之初会给每一台 RegionServer 在.log 下创建一个目录，
+ 若客户端如果开启WAL 模式，会先将数据写入一份到.log 下，当 RegionServer crash 或者目录达到一定大小，会开启 replay 模式，类似 MySQL 的 binlog。
+3、/hbase/archive
+    HBase 在做 Split或者 compact 操作完成之后，会将 HFile 移到.archive 目录中，然后将之前的 hfile 删除掉，该目录由 HMaster 上的一个定时任务定期去清理。
+4、/hbase/corrupt
+    存储HBase做损坏的日志文件，一般都是为空的。 
+5、/hbase/data
+这个才是 hbase 的核心目录，0.98版本里支持 namespace 的概念模型，系统会预置两个 namespace 即：hbase和default
+5.1 /hbase/data/default
+     这个默认的namespace即没有指定namespace 的表都将会flush 到该目录下面。
+5.2 /hbase/data/hbase
+     这个namespace 下面存储了 HBase 的 namespace、meta 和acl 三个表，这里的 meta 表跟0.94版本的.META.是一样的，自0.96之后就已经将 ROOT 表去掉了，直接从Zookeeper 中找到meta 表的位置，然后通过 meta 表定位到 region。 namespace 中存储了 HBase 中的所有 namespace 信息，包括预置的hbase 和 default。acl 则是表的用户权限控制。
+     如果自定义一些 namespace 的话，就会再/hbase/data 目录下新建一个 namespace 文件夹，该 namespace 下的表都将 flush 到该目录下。
+6、/hbase/hbase.id
+     它是一个文件，存储集群唯一的 cluster id 号，是一个 uuid。
+7、/hbase/hbase.version
+     同样也是一个文件，存储集群的版本号，貌似是加密的，看不到，只能通过web-ui 才能正确显示出来。
+8、/hbase/oldWALs
+
