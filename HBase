@@ -40,3 +40,6 @@ HBase 目录结构
      同样也是一个文件，存储集群的版本号，貌似是加密的，看不到，只能通过web-ui 才能正确显示出来。
 8、/hbase/oldWALs
 
+
+HBase数据迁移实战
+http://www.linuxidc.com/Linux/2016-03/129533.htm

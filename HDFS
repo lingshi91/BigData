@@ -1,0 +1,40 @@
+HDFS NmaeNode Meta信息
+
+执行命令：
+hdfs  dfsadmin -metasave meta.txt
+
+执行日志：
+Created metasave file meta.txt in the log directory of namenode master1.lz/10.110.22.231:8020
+Created metasave file meta.txt in the log directory of namenode master2.lz/10.110.22.232:8020
+在HDFS日志目录下会生成meta.txt文件
+
+查看两个文件的文件：
+master1内容如下：
+0 files and directories, 1390 blocks = 1390 total
+Live Datanodes: 3
+Dead Datanodes: 0
+Metasave: Blocks waiting for replication: 0
+Mis-replicated blocks that have been postponed:
+Metasave: Blocks being replicated: 0
+Metasave: Blocks 0 waiting deletion from 0 datanodes.
+Corrupt Blocks:
+Metasave: Number of datanodes: 3
+10.110.22.233:50010 IN 84665301504(78.85 GB) 24101023744(22.45 GB) 28.47% 48429050617(45.10 GB) 0(0 B) 0(0 B) 100.00% 0(0 B) Mon Dec 18 14:36:49 CST 2017
+10.110.22.234:50010 IN 84665301504(78.85 GB) 23148462080(21.56 GB) 27.34% 49378572966(45.99 GB) 0(0 B) 0(0 B) 100.00% 0(0 B) Mon Dec 18 14:36:49 CST 2017
+10.110.22.235:50010 IN 84665301504(78.85 GB) 24032530738(22.38 GB) 28.39% 48171662073(44.86 GB) 0(0 B) 0(0 B) 100.00% 0(0 B) Mon Dec 18 14:36:49 CST 2017
+
+master2内容如下：
+2015 files and directories, 1390 blocks = 3405 total
+Live Datanodes: 3
+Dead Datanodes: 0
+Metasave: Blocks waiting for replication: 2
+/user/hdfs/.staging/job_1511861817225_0007/job.jar: blk_1073744399_3625 (replicas: l: 3 d: 0 c: 0 e: 0)  10.110.22.234:50010 :  10.110.22.235:50010 :  10.110.22.233:50010 :
+/user/hdfs/.staging/job_1511861817225_0007/job.split: blk_1073744400_3626 (replicas: l: 3 d: 0 c: 0 e: 0)  10.110.22.234:50010 :  10.110.22.235:50010 :  10.110.22.233:50010 :
+Mis-replicated blocks that have been postponed:
+Metasave: Blocks being replicated: 0
+Metasave: Blocks 0 waiting deletion from 0 datanodes.
+Corrupt Blocks:
+Metasave: Number of datanodes: 3
+10.110.22.233:50010 IN 84665301504(78.85 GB) 24101023744(22.45 GB) 28.47% 48429050617(45.10 GB) 0(0 B) 0(0 B) 100.00% 0(0 B) Mon Dec 18 14:36:49 CST 2017
+10.110.22.234:50010 IN 84665301504(78.85 GB) 23148462080(21.56 GB) 27.34% 49378572966(45.99 GB) 0(0 B) 0(0 B) 100.00% 0(0 B) Mon Dec 18 14:36:52 CST 2017
+10.110.22.235:50010 IN 84665301504(78.85 GB) 24032530738(22.38 GB) 28.39% 48171662073(44.86 GB) 0(0 B) 0(0 B) 100.00% 0(0 B) Mon Dec 18 14:36:49 CST 2017
