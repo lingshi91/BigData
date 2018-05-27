@@ -1,0 +1,71 @@
+安全模式下spark应用提交
+ 
+项目可直接导入IDE运行，其中注意的地方：
+SparkSql项目
+文件准备：
+      上传文件sparksql.txt至HDFS目录：/tmp/sparksql.txt 内容如下：
+		guanxin 17
+		xiaohong 26
+		xiaogang 12
+依赖包替换
+       修改项目中依赖包，直接替换为本机的spark对应的版本
+工程文件替换：
+		conf目录：
+			替换当前集群的core-site.xml、hadoop-env.sh、hdfs-site.xml和krb5.conf文件
+代码修改：
+		SparSql.java文件：
+			第50行： JavaRDD<Person> people = ctx.textFile("hdfs://hd193.bigdata:8020/tmp/sparksql.txt").map  修改对应的为HDFS上指定的文件路径sparksql.txt
+			                                                                                                   
+程序打包上传：
+	 通过IDE将指定程序主类，并打包上传至安装有spark-client组件的入口机
+	 
+程序执行：
+	执行任务提交命令，格式如下：
+	./spark-submit --keytab [keytab文件]  ----principal [--principal名称]   --class myspark.SparkSql --master yarn --deploy-mode cluster   /opt/lz/lz-spark-demo.jar  其它参数
+	例：
+	./spark-submit --keytab /etc/security/keytabs/spark.headless.keytab  --principal spark-bigdata_cn@BIGDATA  --class myspark.SparkSql --master yarn --deploy-mode cluster   /opt/lz/lz-spark-demo.jar
+附：
+	1、principal名称  可以通过 klist -kt /etc/security/keytabs/spark.headless.keytab 查看
+	2、默认的keytab文件目录为 /etc/security/keytabs/
+	3、HDFS文件目录，要参考当前集群HDFS 参数 fs.defaultFS 参数 进行配置
+ 
+ 
+Spark/任务安全模式下任务提交有两种方式：
+1、 首先kinit  -kt  
+2、 在任务提交指令中增加参数
+--keytab /etc/security/keytabs/spark.headless.keytab --principal spark-bigdata_cn@BIGDATA
+	注意：必须紧跟 spark-submit 参数否则会被误认为应用参数
+ 
+首先缓存spark的票据后，执行任务报如下错误:
+ 
+Diagnostics: File does not exist: 
+hdfs://hd193.bigdata:8020/user/spark/.sparkStaging/application_1524533099000_0001/__spark_conf__1172254151604722948.zip
+java.io.FileNotFoundException: File does not exist: 
+hdfs://hd193.bigdata:8020/user/spark/.sparkStaging/application_1524533099000_0001/__spark_conf__1172254151604722948.zip
+        at org.apache.hadoop.hdfs.DistributedFileSystem$26.doCall(DistributedFileSystem.java:1446)
+        at org.apache.hadoop.hdfs.DistributedFileSystem$26.doCall(DistributedFileSystem.java:1438)
+ 
+查看HDFS目录，发现
+application_1524533099000_0001/__spark_conf__1172254151604722948.zip确实生成
+ 
+修改yarn参数：
+yarn.nodemanager.delete.debug-delay-sec  默认为0 ，修改为900s 
+ 
+查找默认的yarn的log目录位置 /Hadoop/yarn/log 
+查看stdout 发现已经产生任务执行结果
+查看stderr 发现spark任务已经提交，并发现错误如下：
+18/04/24 09:27:40 INFO ApplicationMaster: Final app status: SUCCEEDED, exitCode: 0
+18/04/24 09:27:40 INFO RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+18/04/24 09:27:43 ERROR ApplicationMaster: SparkContext did not initialize after waiting for 100000 ms. Please check earlier log output for errors. Failing the application.
+18/04/24 09:27:43 INFO ApplicationMaster: Unregistering ApplicationMaster with SUCCEEDED
+ 
+解决办法：修改代码：
+SparkConf sparkConf = new
+ SparkConf().setMaster("local").setAppName("JavaSparkSQL");
+修改代码：
+SparkConf sparkConf = new
+ SparkConf().setAppName("JavaSparkSQL");
+ 
+ 
+原因： 当前提交方式为cluster模式，而代码中指定方式为 本地模式 
+所以任务完成，但是远程SparkContext还没有初始化。
