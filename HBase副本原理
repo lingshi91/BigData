@@ -1,0 +1,56 @@
+
+This information was previously available at Cluster Replication.
+HBase provides a cluster replication mechanism which allows you to keep one cluster’s state synchronized with that of another cluster, using the write-ahead log (WAL) of the source cluster to propagate the changes. Some use cases for cluster replication include:
+HBase提供副本机制，通过原集群向备份集群传递WAL日志，允许保持两个集群之间状态一致。
+• Backup and disaster recovery
+• Data aggregation
+• Geographic data distribution
+• Online data ingestion combined with offline data analytics
+Replication is enabled at the granularity of the column family. Before enabling replication for a column family, create the table and all column families to be replicated, on the destination cluster.
+副本支持列族粒度的配置，在为列族启用副本之前，需要在备份集群提前创建需要备份的表及其列族。
+
+151.1. Replication Overview
+Cluster replication uses a source-push methodology. An HBase cluster can be a source (also called master or active, meaning that it is the originator of new data), a destination (also called slave or passive, meaning that it receives data via replication), or can fulfill both roles at once. Replication is asynchronous, and the goal of replication is eventual consistency. When the source receives an edit to a column family with replication enabled, that edit is propagated to all destination clusters using the WAL for that for that column family on the RegionServer managing the relevant region.
+集群副本使用source-push方法，完成备份。  某个HBase集群可以是source集群（master、active集群，即 新数据源头），也可以是目标集群（slave、passive集群，即通过副本接收数据），也可以同时是两种角色。Replication是异步的，具有最终一致性。当source集群中对启用replication的列族执行编辑操作后，此编辑操作会通过WAL日志传递至备份集群中的负责管理此列族的所在region上的Regionserver。
+
+When data is replicated from one cluster to another, the original source of the data is tracked via a cluster ID which is part of the metadata. In HBase 0.96 and newer (HBASE-7709), all clusters which have already consumed the data are also tracked. This prevents replication loops.
+数据备份之后，在元数据细信息中会增加cluster的UUID信息，防止重复replication。
+
+The WALs for each region server must be kept in HDFS as long as they are needed to replicate data to any slave cluster. Each region server reads from the oldest log it needs to replicate and keeps track of its progress processing WALs inside ZooKeeper to simplify failure recovery. The position marker which indicates a slave cluster’s progress, as well as the queue of WALs to process, may be different for every slave cluster.
+每个Regionserver的WAL日志需要存储在HDFS上，Regionserver读取从最旧的日志开始读取，并在zookeeper中存储读取的进度position，用来简化故障恢复。position象征着slave集群和 WAL queue 的处理进度。每个slave cluster的position可能不一样
+
+The clusters participating in replication can be of different sizes. The master cluster relies on randomization to attempt to balance the stream of replication on the slave clusters. It is expected that the slave cluster has storage capacity to hold the replicated data, as well as any data it is responsible for ingesting. If a slave cluster does run out of room, or is inaccessible for other reasons, it throws an error and the master retains the WAL and retries the replication at intervals.
+Slave cluster可能有不同的存储容量。Master Clusters依靠随机的方式平衡slave cluster中的replication stream。Slave Cluster被期望拥有足够的容量存储备份数据和相关数据。如果某个slave cluster容量超出，或者因某些原因不可达。Master Cluster 会保留WAL并在间隔时间后重试。
+
+Consistency Across Replicated Clusters
+How your application builds on top of the HBase API matters when replication is in play. HBase’s replication system provides at-least-once delivery of client edits for an enabled column family to each configured destination cluster. In the event of failure to reach a given destination, the replication system will retry sending edits in a way that might repeat a given message. HBase provides two ways of replication, one is the original replication and the other is serial replication. In the previous way of replication, there is not a guaranteed order of delivery for client edits. In the event of a RegionServer failing, recovery of the replication queue happens independent of recovery of the individual regions that server was previously handling. This means that it is possible for the not-yet-replicated edits to be serviced by a RegionServer that is currently slower to replicate than the one that handles edits from after the failure.
+The combination of these two properties (at-least-once delivery and the lack of message ordering) means that some destination clusters may end up in a different state if your application makes use of operations that are not idempotent, e.g. Increments.
+To solve the problem, HBase now supports serial replication, which sends edits to destination cluster as the order of requests from client. See Serial Replication.
+副本集群间的一致性
+edit传递方式为  at-least-once 最少发送一次。 当目标集群接收edit失败时，edit会被再次发送。
+HBase提供两种replication方式：original replication 和  serial replication 方式。 original replication不能保证edit的发送顺序，且当Regionserver宕机时， replication queue恢复独立于regions 恢复，这有可能导致为完成备份的数据被region 向外提供服务（备份集群的regionserver 备份数据可能较慢）。当至少传送一次和消息顺序不一致同时发生时，slave clusters 之间的状态可能不一致。  如：increment操作
+为了解决此问题，hbase提供serial replication，保证request的顺序性。
+
+Terminology Changes
+Previously, terms such as master-master, master-slave, and cyclical were used to describe replication relationships in HBase. These terms added confusion, and have been abandoned in favor of discussions about cluster topologies appropriate for different scenarios.
+
+
+Cluster Topologies
+• A central source cluster might propagate changes out to multiple destination clusters, for failover or due to geographic distribution.
+• A source cluster might push changes to a destination cluster, which might also push its own changes back to the original cluster.
+• Many different low-latency clusters might push changes to one centralized cluster for backup or resource-intensive data analytics jobs. The processed data might then be replicated back to the low-latency clusters.
+Multiple levels of replication may be chained together to suit your organization’s needs. The following diagram shows a hypothetical scenario. Use the arrows to follow the data paths.
+
+集群拓扑
+中心source cluster将修改发送至多个目标备份集群，以便于故障恢复和地理性分布
+目标备份集群也可以将自身修改发送给source集群
+许多低延迟的集群可能将修改发送至 source cluster 做备份或者资源敏感型的数据分析作业。结果数据可能被复制会这些低延迟的集群中。
+
+
+
+Figure 12. Example of a Complex Cluster Replication Configuration
+HBase replication borrows many concepts from the statement-based replication design used by MySQL. Instead of SQL statements, entire WALEdits (consisting of multiple cell inserts coming from Put and Delete operations on the clients) are replicated in order to maintain atomicity.
+
+HBase replication借鉴了许多 MySQL中基于语句的replication 概念，相比于SQL 语句，Hbase 复制整个WAL以保证原子性。
+
+来自 <http://hbase.apache.org/book.html#_cluster_replication> 
