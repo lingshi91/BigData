@@ -1,4 +1,4 @@
-HDFS NmaeNode Meta信息
+HDFS NameNode Meta信息
 
 执行命令：
 hdfs  dfsadmin -metasave meta.txt
