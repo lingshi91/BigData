@@ -1,0 +1,27 @@
+HiBench建表语句：
+
+CREATE TABLES OS_ORDER(ORDER_ID INT, ORDER_CODE STRING, BUYER_ID INT, CREATE_DT STRING,PAY_DT STRING, CREATE_IP STRING , ORDER_STATUS CHAR ,EXCEPTION_STATUS INT)ROW FORMAT DELIMITED FIELDS TERMINATED BY ' ';
+
+
+
+CREATE TABLE bigdatabench_dw_item(ITEM_ID INT, ORDER_ID INT,GOODS_ID STRING,GOODS_NUMBER FLOAT,SHOP_PRICE LONG, GOODS_PRICE FLOAT, GOODS_AMOUNT LONG)ROW FORMAT DELIMITED FIELDS TERMINATED BY ' ';
+ 
+ 
+提交 MR wordcount任务：
+/usr/hdp/current/hadoop-client/bin/hadoop --config /usr/hdp/current/hadoop-client/etc/hadoop jar /usr/hdp/current/hadoop-mapreduce-client/hadoop-mapreduce-examples.jar wordcount -D mapreduce.output.fileoutputformat.compress=false -D mapreduce.job.maps=300 -D mapreduce.job.reduces=376 -D mapreduce.inputformat.class=org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat -D mapreduce.outputformat.class=org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat -D mapreduce.job.inputformat.class=org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat -D mapreduce.job.outputformat.class=org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat hdfs://mycluster/HiBench/Wordcount/Input hdfs://mycluster/HiBench/Wordcount/Output
+
+提交spak  terasort 任务
+/usr/hdp/current/spark-client/bin/spark-submit  --properties-file /opt/HiBench/report/terasort/spark/java/conf/sparkbench/spark.conf --class com.intel.sparkbench.terasort.JavaTeraSort --master yarn-client --num-executors 47 --executor-cores 6 --executor-memory 18G --driver-memory 8G /opt/HiBench/src/sparkbench/target/sparkbench-5.0-SNAPSHOT-MR2-spark1.5-jar-with-dependencies.jar hdfs://mycluster/HiBench/Terasort/Input hdfs://mycluster/HiBench/Terasort/Output
+
+
+提交看means 任务
+
+ /usr/hdp/current/hadoop-client/bin/hadoop --config /usr/hdp/current/hadoop-client/etc/hadoop jar /opt/HiBench/src/autogen/target/autogen-5.0-SNAPSHOT-jar-with-dependencies.jar org.apache.mahout.clustering.kmeans.GenKMeansDataset -D hadoop.job.history.user.location=hdfs://mycluster/HiBench/Kmeans/Input/samples -compress false -sampleDir hdfs://mycluster/HiBench/Kmeans/Input/samples -clusterDir hdfs://mycluster/HiBench/Kmeans/Input/cluster -numClusters 5 -numSamples 1200000000 -samplesPerFile 40000000 -sampleDimension 20
+
+
+ 提交pagerank 任务
+  /usr/hdp/current/spark-client/bin/spark-submit  --properties-file /opt/HiBench/report/pagerank/spark/java/conf/sparkbench/spark.conf --class org.apache.spark.examples.JavaPageRank --master yarn-client --num-executors 47 --executor-cores 6 --executor-memory 18G --driver-memory 8G /opt/HiBench/src/sparkbench/target/sparkbench-5.0-SNAPSHOT-MR2-spark1.5-jar-with-dependencies.jar hdfs://mycluster/HiBench/Pagerank/Input/edges hdfs://mycluster/HiBench/Pagerank/Output 3
+
+提交kmeans任务  
+   /usr/hdp/current/spark-client/bin/spark-submit  --properties-file /opt/HiBench/report/kmeans/spark/java/conf/sparkbench/spark.conf --class org.apache.spark.examples.mllib.JavaKMeans --master yarn-client --num-executors 47 --executor-cores 6 --executor-memory 18G --driver-memory 8G /opt/HiBench/src/sparkbench/target/sparkbench-5.0-SNAPSHOT-MR2-spark1.5-jar-with-dependencies.jar hdfs://mycluster/HiBench/Kmeans/Input/samples 10 -10
+
