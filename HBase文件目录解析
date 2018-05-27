@@ -1,11 +1,6 @@
 简介：
-HBase 是一种	分布式非关系型数据库，提供统一的配置管理和数据同步。
-
-
-
-HBase版本：当前我所使用的版本为HBase	1.1.2
-
-HBase  Shell操作
+HBase 是一种分布式非关系型数据库，提供统一的配置管理和数据同步。     
+版本：HBase1.1.2
 
 HBase 目录结构
 /apps/hbase/data/.tmp
@@ -41,5 +36,4 @@ HBase 目录结构
 8、/hbase/oldWALs
 
 
-HBase数据迁移实战
-http://www.linuxidc.com/Linux/2016-03/129533.htm
+
